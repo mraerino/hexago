@@ -73,34 +73,49 @@ var grays = []int{
 	42, 84, 126, 168,
 }
 
+func draw_mupliple_hexagons(canvas *svg.SVG, M Point, rounds int, radius int) {
+	first_h := Hexagon{
+		M: M,
+		R: radius,
+	}
+	hexagon_width := float64(first_h.R) * 2 * math.Cos(math.Pi / 6)
+	first_h.calc()
+	first_h.draw(canvas, grays[0])
+	for c := 1; c < rounds; c++ {
+		count_hex := 6 * c
+		h := Hexagon{
+			M: Point{
+				X: first_h.C.X,
+				Y: first_h.C.Y + first_h.R,
+			},
+			R: first_h.R,
+		}
+		h.calc()
+		h.draw(canvas, grays[0])
+		first_h = h
+		deg := math.Pi // 180°
+		for i := 1; i < count_hex; i++ {
+			h = Hexagon{
+				M: Point{
+					X: h.M.X + int(hexagon_width * math.Cos(deg)),
+					Y: h.M.Y + int(hexagon_width * math.Sin(deg)),
+				},
+				R: h.R,
+			}
+			h.calc()
+			h.draw(canvas, grays[i%4])
+			if i % c == 0 {
+				deg += math.Pi / 3 // 60°
+			}
+		}
+	}
+}
+
 func main() {
-	width := 500
-	height := 500
+	width := 10000
+	height := 10000
 	canvas := svg.New(os.Stdout)
 	canvas.Start(width, height)
-	h := Hexagon{
-		M: Point{X: 150, Y: 150,},
-		R: 100,
-	}
-	h.calc()
-	h.draw(canvas, grays[0])
-	h_2 := Hexagon{
-		M: Point{X: h.C.X, Y: h.C.Y + h.R},
-		R: h.R,
-	}
-	h_2.calc()
-	h_2.draw(canvas, grays[1])
-	h_3 := Hexagon{
-		M: Point{X: h_2.B.X, Y: h_2.B.Y - h.R},
-		R: h.R,
-	}
-	h_3.calc()
-	h_3.draw(canvas, grays[2])
-	h_4 := Hexagon{
-		M: Point{X: h_3.C.X, Y: h_3.C.Y + h.R},
-		R: h.R,
-	}
-	h_4.calc()
-	h_4.draw(canvas, grays[3])
+	draw_mupliple_hexagons(canvas, Point{X: 1000, Y: 1000}, 10, 50)
 	canvas.End()
 }
