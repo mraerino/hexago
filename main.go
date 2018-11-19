@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"math"
+	"math/big"
 	"os"
 
 	"github.com/ajstarks/svgo"
@@ -75,14 +77,35 @@ var grays = []int{
 	42, 84, 126, 168,
 }
 
+type randomColor struct {
+	history []int
+}
+
+func (r *randomColor) get() int {
+	newIndex := r.history[len(r.history)-1]
+	for newIndex == r.history[len(r.history)-1] {
+		newIndexBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(grays))))
+		newIndex = int(newIndexBig.Int64())
+		if err != nil {
+			panic(err)
+		}
+	}
+	r.history = append(r.history, newIndex)
+	return grays[newIndex]
+}
+
 func drawMultipleHexagons(canvas *svg.SVG, M Point, rounds int, radius int) {
+	colorGen := randomColor{
+		history: []int{0},
+	}
 	firstH := Hexagon{
 		M: M,
 		R: radius,
 	}
 	hexagonWidth := float64(firstH.R) * 2 * math.Cos(math.Pi/6)
 	firstH.calc()
-	firstH.draw(canvas, grays[0])
+	color := colorGen.get()
+	firstH.draw(canvas, color)
 	for c := 1; c < rounds; c++ {
 		hexInCircleCount := 6 * c
 		h := Hexagon{
@@ -93,7 +116,8 @@ func drawMultipleHexagons(canvas *svg.SVG, M Point, rounds int, radius int) {
 			R: firstH.R,
 		}
 		h.calc()
-		h.draw(canvas, grays[0])
+		color := colorGen.get()
+		h.draw(canvas, color)
 		firstH = h
 		deg := math.Pi // 180°
 		for i := 1; i < hexInCircleCount; i++ {
@@ -105,7 +129,8 @@ func drawMultipleHexagons(canvas *svg.SVG, M Point, rounds int, radius int) {
 				R: h.R,
 			}
 			h.calc()
-			h.draw(canvas, grays[i%4])
+			color := colorGen.get()
+			h.draw(canvas, color)
 			if i%c == 0 {
 				deg += math.Pi / 3 // 60°
 			}
