@@ -65,8 +65,12 @@ func (h Hexagon) sliceY() []int {
 	}
 }
 
-func (h Hexagon) draw(canvas *svg.SVG) {
-	canvas.Polygon(h.sliceX(), h.sliceY())
+func (h Hexagon) draw(canvas *svg.SVG, gray int) {
+	canvas.Polygon(h.sliceX(), h.sliceY(), canvas.RGB(gray, gray, gray))
+}
+
+var grays = []int{
+	42, 84, 126, 168,
 }
 
 func main() {
@@ -75,10 +79,28 @@ func main() {
 	canvas := svg.New(os.Stdout)
 	canvas.Start(width, height)
 	h := Hexagon{
-		M: Point{X: 250, Y: 250,},
-		R: 200,
+		M: Point{X: 150, Y: 150,},
+		R: 100,
 	}
 	h.calc()
-	h.draw(canvas)
+	h.draw(canvas, grays[0])
+	h_2 := Hexagon{
+		M: Point{X: h.C.X, Y: h.C.Y + h.R},
+		R: h.R,
+	}
+	h_2.calc()
+	h_2.draw(canvas, grays[1])
+	h_3 := Hexagon{
+		M: Point{X: h_2.B.X, Y: h_2.B.Y - h.R},
+		R: h.R,
+	}
+	h_3.calc()
+	h_3.draw(canvas, grays[2])
+	h_4 := Hexagon{
+		M: Point{X: h_3.C.X, Y: h_3.C.Y + h.R},
+		R: h.R,
+	}
+	h_4.calc()
+	h_4.draw(canvas, grays[3])
 	canvas.End()
 }
