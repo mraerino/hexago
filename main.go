@@ -82,30 +82,44 @@ type randomColor struct {
 	history []int
 }
 
-func (r *randomColor) get() int {
-	newIndex := r.history[len(r.history)-1]
-	for newIndex == r.history[len(r.history)-1] {
+func (r *randomColor) isCollision(proposal, circleIndex int) bool {
+	if proposal == -1 {
+		return true
+	}
+	if len(r.history) == 0 {
+		return false
+	}
+	if circleIndex == 1 && proposal == r.history[0] {
+		return true
+	}
+	if proposal == r.history[len(r.history)-1] {
+		return true
+	}
+	return false
+}
+
+func (r *randomColor) get(circleIndex int) int {
+	newColorIndex := -1
+	for r.isCollision(newColorIndex, circleIndex) {
 		newIndexBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(grays))))
-		newIndex = int(newIndexBig.Int64())
+		newColorIndex = int(newIndexBig.Int64())
 		if err != nil {
 			panic(err)
 		}
 	}
-	r.history = append(r.history, newIndex)
-	return grays[newIndex]
+	r.history = append(r.history, newColorIndex)
+	return grays[newColorIndex]
 }
 
 func drawMultipleHexagons(canvas *svg.SVG, M Point, rounds int, radius int) {
-	colorGen := randomColor{
-		history: []int{0},
-	}
+	colorGen := randomColor{}
 	firstH := Hexagon{
 		M: M,
 		R: radius,
 	}
 	hexagonWidth := float64(firstH.R) * 2 * math.Cos(math.Pi/6)
 	firstH.calc()
-	color := colorGen.get()
+	color := colorGen.get(0)
 	firstH.draw(canvas, color)
 	for c := 1; c < rounds; c++ {
 		hexInCircleCount := 6 * c
@@ -117,7 +131,7 @@ func drawMultipleHexagons(canvas *svg.SVG, M Point, rounds int, radius int) {
 			R: firstH.R,
 		}
 		h.calc()
-		color := colorGen.get()
+		color := colorGen.get(c)
 		h.draw(canvas, color)
 		firstH = h
 		deg := math.Pi // 180°
@@ -130,7 +144,8 @@ func drawMultipleHexagons(canvas *svg.SVG, M Point, rounds int, radius int) {
 				R: h.R,
 			}
 			h.calc()
-			color := colorGen.get()
+
+			color := colorGen.get(c)
 			h.draw(canvas, color)
 			if i%c == 0 {
 				deg += math.Pi / 3 // 60°
