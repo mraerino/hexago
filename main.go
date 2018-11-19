@@ -93,6 +93,11 @@ func (r *randomColor) isCollision(proposal, circleIndex int) bool {
 	if circleIndex == 1 && proposal == r.history[0] {
 		return true
 	}
+	circleSize := circleIndex * 6
+	indexToCheck := globalIndex - (circleSize - 1)
+	if indexToCheck > 0 && proposal == r.history[indexToCheck] {
+		return true
+	}
 	if proposal == r.history[globalIndex-1] {
 		return true
 	}
