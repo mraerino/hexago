@@ -119,44 +119,45 @@ func (r *randomColor) get(circleIndex int) int {
 
 type HexagonGenerator struct {
 	canvas *svg.SVG
+	radius int
 }
 
-func (gen *HexagonGenerator) drawMultipleHexagons(M Point, rounds int, radius int) {
-	colorGen := randomColor{}
-	firstH := Hexagon{
-		M: M,
-		R: radius,
+func (gen *HexagonGenerator) drawSingle(pos Point, color int) Hexagon {
+	hex := Hexagon{
+		M: pos,
+		R: gen.radius,
 	}
-	hexagonWidth := float64(firstH.R) * 2 * math.Cos(math.Pi/6)
-	firstH.calc()
+	hex.calc()
+	hex.draw(gen.canvas, color)
+	return hex
+}
+
+func (gen *HexagonGenerator) drawMultipleHexagons(M Point, rounds int) {
+	colorGen := randomColor{}
+
 	color := colorGen.get(0)
-	firstH.draw(gen.canvas, color)
+	firstH := gen.drawSingle(M, color)
+
+	hexagonWidth := float64(firstH.R) * 2 * math.Cos(math.Pi/6)
+
 	for c := 1; c < rounds; c++ {
 		hexInCircleCount := 6 * c
-		h := Hexagon{
-			M: Point{
-				X: firstH.C.X,
-				Y: firstH.C.Y + firstH.R,
-			},
-			R: firstH.R,
-		}
-		h.calc()
+
 		color := colorGen.get(c)
-		h.draw(gen.canvas, color)
+		h := gen.drawSingle(Point{
+			X: firstH.C.X,
+			Y: firstH.C.Y + firstH.R,
+		}, color)
 		firstH = h
+
 		deg := math.Pi // 180°
 		for i := 1; i < hexInCircleCount; i++ {
-			h = Hexagon{
-				M: Point{
-					X: h.M.X + int(hexagonWidth*math.Cos(deg)),
-					Y: h.M.Y + int(hexagonWidth*math.Sin(deg)),
-				},
-				R: h.R,
-			}
-			h.calc()
-
 			color := colorGen.get(c)
-			h.draw(gen.canvas, color)
+			h = gen.drawSingle(Point{
+				X: h.M.X + int(hexagonWidth*math.Cos(deg)),
+				Y: h.M.Y + int(hexagonWidth*math.Sin(deg)),
+			}, color)
+
 			if i%c == 0 {
 				deg += math.Pi / 3 // 60°
 			}
@@ -170,8 +171,8 @@ func graphicHandler(w http.ResponseWriter, req *http.Request) {
 	height := 10000
 	canvas := svg.New(w)
 	canvas.Start(width, height)
-	gen := HexagonGenerator{canvas}
-	gen.drawMultipleHexagons(Point{X: 1000, Y: 1000}, 5, 100)
+	gen := HexagonGenerator{canvas, 100}
+	gen.drawMultipleHexagons(Point{X: 1000, Y: 1000}, 5)
 	canvas.End()
 }
 
