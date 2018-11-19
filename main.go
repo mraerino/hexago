@@ -2,9 +2,10 @@ package main
 
 import (
 	"crypto/rand"
+	"log"
 	"math"
 	"math/big"
-	"os"
+	"net/http"
 
 	"github.com/ajstarks/svgo"
 )
@@ -138,11 +139,20 @@ func drawMultipleHexagons(canvas *svg.SVG, M Point, rounds int, radius int) {
 	}
 }
 
-func main() {
+func graphicHandler(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "image/svg+xml")
 	width := 10000
 	height := 10000
-	canvas := svg.New(os.Stdout)
+	canvas := svg.New(w)
 	canvas.Start(width, height)
 	drawMultipleHexagons(canvas, Point{X: 1000, Y: 1000}, 10, 50)
 	canvas.End()
+}
+
+func main() {
+	http.Handle("/", http.HandlerFunc(graphicHandler))
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatal("ListenAndServe:", err)
+	}
 }
