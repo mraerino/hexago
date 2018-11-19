@@ -83,16 +83,17 @@ type randomColor struct {
 }
 
 func (r *randomColor) isCollision(proposal, circleIndex int) bool {
+	globalIndex := len(r.history)
 	if proposal == -1 {
 		return true
 	}
-	if len(r.history) == 0 {
+	if globalIndex == 0 {
 		return false
 	}
 	if circleIndex == 1 && proposal == r.history[0] {
 		return true
 	}
-	if proposal == r.history[len(r.history)-1] {
+	if proposal == r.history[globalIndex-1] {
 		return true
 	}
 	return false
