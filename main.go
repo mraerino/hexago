@@ -2,6 +2,8 @@ package main
 
 import (
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"log"
 	"math"
 	"math/big"
@@ -111,7 +113,7 @@ func (r *randomColor) isCollision(proposal, circleIndex int, prevCircleNeighbor 
 	return false
 }
 
-func (r *randomColor) get(circleIndex, localIndex int) int {
+func (r *randomColor) get(circleIndex, localIndex int) (int, error) {
 	if len(r.history) <= circleIndex {
 		r.history = append(r.history, []int{})
 	}
@@ -120,15 +122,20 @@ func (r *randomColor) get(circleIndex, localIndex int) int {
 	prevCircleNeighbor := float64(localIndex) / ratio
 
 	newColorIndex := -1
+	counter := 0
 	for r.isCollision(newColorIndex, circleIndex, prevCircleNeighbor) {
 		newIndexBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(grays))))
 		newColorIndex = int(newIndexBig.Int64())
 		if err != nil {
 			panic(err)
 		}
+		counter++
+		if counter > 10 {
+			return 0, errors.New("infinite loop")
+		}
 	}
 	r.history[circleIndex] = append(r.history[circleIndex], newColorIndex)
-	return grays[newColorIndex]
+	return grays[newColorIndex], nil
 }
 
 type HexagonGenerator struct {
@@ -146,10 +153,13 @@ func (gen *HexagonGenerator) drawSingle(pos Point, color int) Hexagon {
 	return hex
 }
 
-func (gen *HexagonGenerator) drawMultipleHexagons(M Point, rounds int) {
+func (gen *HexagonGenerator) drawMultipleHexagons(M Point, rounds int) error {
 	colorGen := randomColor{}
 
-	color := colorGen.get(0, 0)
+	color, err := colorGen.get(0, 0)
+	if err != nil {
+		return err
+	}
 	firstH := gen.drawSingle(M, color)
 
 	hexagonWidth := float64(firstH.R) * 2 * math.Cos(math.Pi/6)
@@ -157,7 +167,10 @@ func (gen *HexagonGenerator) drawMultipleHexagons(M Point, rounds int) {
 	for c := 1; c < rounds; c++ {
 		hexInCircleCount := 6 * c
 
-		color := colorGen.get(c, 0)
+		color, err := colorGen.get(c, 0)
+		if err != nil {
+			return err
+		}
 		h := gen.drawSingle(Point{
 			X: firstH.C.X,
 			Y: firstH.C.Y + firstH.R,
@@ -166,7 +179,10 @@ func (gen *HexagonGenerator) drawMultipleHexagons(M Point, rounds int) {
 
 		deg := math.Pi // 180°
 		for i := 1; i < hexInCircleCount; i++ {
-			color := colorGen.get(c, i)
+			color, err := colorGen.get(c, i)
+			if err != nil {
+				return err
+			}
 			h = gen.drawSingle(Point{
 				X: h.M.X + int(hexagonWidth*math.Cos(deg)),
 				Y: h.M.Y + int(hexagonWidth*math.Sin(deg)),
@@ -177,6 +193,7 @@ func (gen *HexagonGenerator) drawMultipleHexagons(M Point, rounds int) {
 			}
 		}
 	}
+	return nil
 }
 
 func graphicHandler(w http.ResponseWriter, req *http.Request) {
@@ -186,7 +203,10 @@ func graphicHandler(w http.ResponseWriter, req *http.Request) {
 	canvas := svg.New(w)
 	canvas.Start(width, height)
 	gen := HexagonGenerator{canvas, 100}
-	gen.drawMultipleHexagons(Point{X: 1000, Y: 1000}, 5)
+	err := gen.drawMultipleHexagons(Point{X: 1000, Y: 1000}, 5)
+	if err != nil {
+		canvas.Text(20, 20, fmt.Sprintf("500 - %+v", err), canvas.RGB(255, 0, 0))
+	}
 	canvas.End()
 }
 
